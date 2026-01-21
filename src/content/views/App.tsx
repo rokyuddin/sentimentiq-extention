@@ -1,23 +1,36 @@
-import Logo from '@/assets/crx.svg'
-import { useState } from 'react'
-import './App.css'
+import { useEffect } from 'react'
+import { extractProductInfo } from '@/lib/extraction'
 
 function App() {
-  const [show, setShow] = useState(false)
-  const toggle = () => setShow(!show)
+  useEffect(() => {
+    const handleExtraction = () => {
+      const info = extractProductInfo();
+      console.log('[SentimentIQ] Extraction check:', info);
+      
+      // Notify background script
+      chrome.runtime.sendMessage({ 
+        type: 'PRODUCT_DETECTED', 
+        payload: info || null 
+      });
+    };
 
-  return (
-    <div className="popup-container">
-      {show && (
-        <div className={`popup-content ${show ? 'opacity-100' : 'opacity-0'}`}>
-          <h1>HELLO CRXJS</h1>
-        </div>
-      )}
-      <button className="toggle-button" onClick={toggle}>
-        <img src={Logo} alt="CRXJS logo" className="button-icon" />
-      </button>
-    </div>
-  )
+    // Run on mount
+    handleExtraction();
+
+    // Handle SPA navigation (poll or listen to common events)
+    const interval = setInterval(handleExtraction, 3000);
+    
+    // Also listen to popstate for browser navigation
+    window.addEventListener('popstate', handleExtraction);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('popstate', handleExtraction);
+    };
+  }, []);
+
+  // No UI needed - just background product detection
+  return null;
 }
 
 export default App

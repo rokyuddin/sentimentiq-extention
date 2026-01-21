@@ -1,5 +1,6 @@
 import { defineManifest } from '@crxjs/vite-plugin'
 import pkg from './package.json'
+import {matches} from './src/lib/matches.ts'
 
 export default defineManifest({
   manifest_version: 3,
@@ -14,36 +15,19 @@ export default defineManifest({
     },
     default_popup: 'src/popup/index.html',
   },
+  background: {
+    service_worker: 'src/background/index.ts',
+    type: 'module',
+  },
   permissions: [
     'sidePanel',
     'contentSettings',
+    'storage',
+    'tabs',
   ],
   content_scripts: [{
     js: ['src/content/main.tsx'],
-    matches: [
-      "https://*.amazon.com/*",
-      "https://*.alibaba.com/*",
-      "https://*.aliexpress.com/*",
-      "https://*.ebay.com/*",
-      "https://*.walmart.com/*",
-      "https://*.jd.com/*",
-      "https://*.taobao.com/*",
-      "https://*.tmall.com/*",
-      "https://*.shopee.com/*",
-      "https://*.mercadolibre.com/*",
-      "https://*.etsy.com/*",
-      "https://*.flipkart.com/*",
-      "https://*.rakuten.com/*",
-      "https://*.ozon.ru/*",
-      "https://*.pinduoduo.com/*",
-      "https://*.target.com/*",
-      "https://*.lazada.com/*",
-      "https://*.zalando.com/*",
-      "https://*.asos.com/*",
-      "https://*.wayfair.com/*",
-      "https://*.noon.com/*",
-      "https://*.meesho.com/*"
-    ]
+    matches: matches
   }],
   side_panel: {
     default_path: 'src/sidepanel/index.html',

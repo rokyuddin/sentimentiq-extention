@@ -8,12 +8,13 @@ export const ProductMetadataSchema = z.object({
 });
 
 export const SentimentResultSchema = z.object({
-    score: z.number().min(0).max(100),
-    label: z.enum(["low", "medium", "high"]),
-    pros: z.array(z.string()),
-    cons: z.array(z.string()),
-    warnings: z.array(z.string()),
-    platforms: z.array(z.string()).default(["Reddit"]),
+  bsScore: z.number().min(0).max(100),
+  trustLevel: z.enum(["low", "medium", "high"]),
+  summary: z.string(),
+  pros: z.array(z.string()),
+  cons: z.array(z.string()),
+  warnings: z.array(z.string()).optional(),
+  sentimentData: z.record(z.string(), z.any()).optional(),
 });
 
 export type ProductMetadata = z.infer<typeof ProductMetadataSchema>;

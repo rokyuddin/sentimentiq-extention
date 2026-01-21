@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Header } from "@/components/Header";
 import { BottomSheet } from "@/components/BottomSheet";
@@ -7,22 +7,7 @@ import { SentimentSummary } from "@/components/SentimentSummary";
 import { useSentimentStore } from "@/store/sentiment-store";
 
 // Mock Data for demonstration
-const MOCK_RESULT = {
-  score: 84,
-  label: "high" as const,
-  pros: [
-    "Incredible clarity and soundstage",
-    "Best-in-class comfort for long use",
-    "Seamless switching between devices"
-  ],
-  cons: [
-    "Higher price point than competitors",
-    "Foldable design feels a bit stiff initially",
-    "Limited color options at launch"
-  ],
-  warnings: ["High fake review density", "Limited warranty in some regions"],
-  platforms: ["Reddit", "TrustPilot"]
-};
+import { analyzeProduct } from "@/lib/api";
 
 import { AuthView } from "@/components/auth/AuthView";
 import { BottomNav } from "@/components/BottomNav";
@@ -32,24 +17,37 @@ import { SettingsView } from "@/components/settings/SettingsView";
 export const App: React.FC = () => {
   const {
     currentProduct, sentimentResult, isLoading, dailyLimit, scansUsed, isBottomSheetOpen, isAuthenticated,
-    currentView, activeTab, setView, setLoading, setProduct, setResult, setBottomSheetOpen,
+    currentView, activeTab, setView, setLoading, setResult, setBottomSheetOpen,
+    setError, addToHistory, incrementScans,
   } = useSentimentStore();
 
-  useEffect(() => {
-    // Simulate detecting a product on the page
-    setProduct({
-      name: "SoundMaster Pro Wireless Headphones",
-      brand: "AudioTech",
-      category: "Electronics",
-    });
-  }, [setProduct]);
+  // Effect to handle product detection is now in the store (syncing via chrome.storage)
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    if (!currentProduct) return;
+
+    // if (scansUsed >= dailyLimit) {
+    //   setError("Daily scan limit reached. Please upgrade to Pro for unlimited scans.");
+    //   return;
+    // }
+
     setLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setResult(MOCK_RESULT);
-    }, 2000);
+    try {
+      const result = await analyzeProduct({ product: currentProduct });
+      setResult(result);
+      addToHistory({
+        id: crypto.randomUUID(),
+        product: currentProduct,
+        result,
+        timestamp: Date.now(),
+      });
+      incrementScans();
+    } catch (err: any) {
+      console.error("Analysis failed:", err);
+      setError(err.message || "An unexpected error occurred during analysis.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -188,7 +186,7 @@ export const App: React.FC = () => {
               title="Analysis Result"
             >
               <div className="flex flex-col items-center gap-8">
-                <BSMeter score={sentimentResult?.score || 0} size={180} />
+                <BSMeter score={sentimentResult?.bsScore || 0} size={180} />
                 <SentimentSummary
                   pros={sentimentResult?.pros || []}
                   cons={sentimentResult?.cons || []}

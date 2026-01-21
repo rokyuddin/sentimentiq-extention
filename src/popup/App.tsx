@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Header } from "@/components/Header";
 import { BottomSheet } from "@/components/BottomSheet";
@@ -6,14 +6,7 @@ import { BSMeter } from "@/components/BSMeter";
 import { SentimentSummary } from "@/components/SentimentSummary";
 import { useSentimentStore } from "@/store/sentiment-store";
 
-const MOCK_RESULT = {
-  score: 84,
-  label: "high" as const,
-  pros: ["Premium comfort", "Great sound", "Durable hinge"],
-  cons: ["High price", "Heavyweight"],
-  warnings: ["Stock levels low"],
-  platforms: ["Reddit"]
-};
+import { analyzeProduct } from "@/lib/api";
 
 import { BottomNav } from "@/components/BottomNav";
 
@@ -25,22 +18,42 @@ import { AuthView } from "@/components/auth/AuthView";
 export const App: React.FC = () => {
   const {
     currentProduct, sentimentResult, isLoading, dailyLimit, scansUsed, isBottomSheetOpen, isAuthenticated,
-    currentView, activeTab, setView, setLoading, setProduct, setResult, setBottomSheetOpen
+    currentView, activeTab, setView, setLoading, setResult, setBottomSheetOpen,
+    setError, addToHistory, incrementScans
   } = useSentimentStore();
 
-  useEffect(() => {
-    setProduct({
-      name: "SoundMaster Pro Wireless Headphones",
-      brand: "AudioTech",
-    });
-  }, [setProduct]);
+  // Effect to handle product detection is now in the store (syncing via chrome.storage)
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    if (!currentProduct) return;
+    
+    // if (scansUsed >= dailyLimit) {
+    //   setError("Daily scan limit reached. Please upgrade to Pro for unlimited scans.");
+    //   return;
+    // }
+    
     setLoading(true);
-    setTimeout(() => {
-      setResult(MOCK_RESULT);
-    }, 1500);
+    try {
+      const result = await analyzeProduct({ product: currentProduct });
+      console.log(result)
+      setResult(result);
+      addToHistory({
+        id: crypto.randomUUID(),
+        product: currentProduct,
+        result,
+        timestamp: Date.now(),
+      });
+      setBottomSheetOpen(true);
+      incrementScans();
+    } catch (err: any) {
+      console.error("Analysis failed:", err);
+      setError(err.error || "An unexpected error occurred during analysis.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // console.log({currentProduct, sentimentResult})
 
   const renderContent = () => {
     switch (activeTab) {
@@ -65,7 +78,7 @@ export const App: React.FC = () => {
                 Analyze Product
               </h1>
               <p className="pt-1 font-normal text-muted-foreground text-xs leading-normal">
-                Detecting sentiment from Reddit and forums...
+                Detecting sentiment from online forums and reviews...
               </p>
             </div>
 
@@ -153,7 +166,7 @@ export const App: React.FC = () => {
               title="Analysis Result"
             >
               <div className="flex flex-col items-center gap-6">
-                <BSMeter score={sentimentResult?.score || 0} size={140} />
+                <BSMeter score={sentimentResult?.bsScore || 0} size={140} />
                 <SentimentSummary
                   pros={sentimentResult?.pros || []}
                   cons={sentimentResult?.cons || []}

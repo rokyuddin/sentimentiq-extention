@@ -50,10 +50,10 @@ export const HistoryItem: React.FC<Props> = ({ item, index }) => {
             <div className="flex items-center gap-3 min-w-0">
                 <div className={cn(
                     "flex justify-center items-center border rounded-lg size-10 shrink-0",
-                    getScoreColor(item.result.score)
+                    getScoreColor(item.result.bsScore)
                 )}>
                     <span className="text-[20px] material-symbols-outlined">
-                        {getSentimentIcon(item.result.score)}
+                        {getSentimentIcon(item.result.bsScore)}
                     </span>
                 </div>
 
@@ -76,12 +76,12 @@ export const HistoryItem: React.FC<Props> = ({ item, index }) => {
             <div className="flex flex-col items-end pl-2 shrink-0">
                 <span className={cn(
                     "px-2 py-0.5 border rounded-full font-bold text-xs",
-                    getScoreColor(item.result.score)
+                    getScoreColor(item.result.bsScore)
                 )}>
-                    {item.result.score}
+                    {item.result.bsScore}
                 </span>
                 <span className="mt-1 font-medium text-[10px] text-muted-foreground capitalize">
-                    {item.result.label}
+                    {item.result.trustLevel}
                 </span>
             </div>
         </motion.button>

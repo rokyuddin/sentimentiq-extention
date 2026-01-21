@@ -4,7 +4,7 @@
 
 ## Product Overview
 
-**Sentiment IQ** is a Chrome extension that helps online shoppers evaluate the *true* quality of a product by analyzing authentic discussions from public platforms such as Reddit and forums. Instead of relying solely on brand-controlled or incentivized reviews, Sentiment IQ exposes hidden complaints, recurring issues, and real-world usage feedback through a clear **B.S. Meter score**.
+**Sentiment IQ** is a Chrome extension that helps online shoppers evaluate the *true* quality of a product by analyzing authentic discussions from various public platforms and forums. Instead of relying solely on brand-controlled or incentivized reviews, Sentiment IQ exposes hidden complaints, recurring issues, and real-world usage feedback through a clear **B.S. Meter score**.
 
 The product acts as a trust layer on top of existing e-commerce platforms (Amazon, Shopify stores, Daraz, Alibaba, etc.) without modifying the shopping experience.
 
@@ -29,7 +29,7 @@ The product acts as a trust layer on top of existing e-commerce platforms (Amazo
 5. Backend:
 
    * Checks cache for existing sentiment data
-   * If not found, fetches public discussions (initially Reddit)
+   * If not found, fetches public discussions via Firecrawl (forums, social platforms, etc.)
    * Runs AI-based sentiment analysis
    * Computes the B.S. Meter score
    * Stores results in cache
@@ -68,7 +68,7 @@ The product acts as a trust layer on top of existing e-commerce platforms (Amazo
    * Brand + product + "problem", "review", "issue"
 3. Data collection:
 
-   * Fetch Reddit posts and comments
+   * Fetch discussions using Firecrawl (crawling forums, social platforms, and other public sources)
 4. AI processing:
 
    * Classify sentiment (positive / negative / neutral)
@@ -127,8 +127,6 @@ The product acts as a trust layer on top of existing e-commerce platforms (Amazo
 * No personal browsing data is stored
 * All sentiment data is sourced from public platforms only
 * Product sentiment is cached to minimize API usage and cost
-* Architecture must support adding new data sources in the future
+* Architecture must support adjusting Firecrawl crawl rules/targets for new data sources
 
 ---
-
-**End of Canvas Requirements**

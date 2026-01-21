@@ -39,7 +39,7 @@ interface SentimentState {
 
     // Actions
     setProduct: (product: ProductMetadata) => void;
-    setResult: (result: SentimentResult) => void;
+    setResult: (result: SentimentResult | null) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     setBottomSheetOpen: (open: boolean) => void;
@@ -56,68 +56,83 @@ interface SentimentState {
     reset: () => void;
 }
 
-export const useSentimentStore = create<SentimentState>((set) => ({
-    currentProduct: null,
-    sentimentResult: null,
-    isLoading: false,
-    error: null,
-    isAuthenticated: true,
-    dailyLimit: 3,
-    scansUsed: 1,
-    plan: 'FREE',
-    isBottomSheetOpen: false,
-    currentView: 'HOME',
-    authMode: 'SIGN_UP',
-    activeTab: 'home',
-    user: {
-        name: "Roky Hasan",
-        email: "roky@sentimentiq.com",
-    },
-    theme: 'system',
-    autoAnalyze: false,
-    notifications: true,
-    history: [
-        {
-            id: '1',
-            product: { name: "Sony WH-1000XM5", brand: "Sony" },
-            result: { score: 85, label: "high", pros: ["Great ANC", "Comfortable"], cons: ["Expensive"], warnings: [], platforms: ["Reddit"] },
-            timestamp: Date.now() - 3600000 * 2 // 2 hours ago
-        },
-        {
-            id: '2',
-            product: { name: "iPhone 15 Pro", brand: "Apple" },
-            result: { score: 72, label: "medium", pros: ["Camera", "Titanium"], cons: ["USB-C limit"], warnings: ["Overheating reports"], platforms: ["Reddit", "Forums"] },
-            timestamp: Date.now() - 3600000 * 24 // 1 day ago
-        },
-        {
-            id: '3',
-            product: { name: "Mechanical Keyboard X", brand: "Keychron" },
-            result: { score: 45, label: "low", pros: ["Build quality"], cons: ["Software issues", "Lag"], warnings: ["Quality control"], platforms: ["Reddit"] },
-            timestamp: Date.now() - 3600000 * 48 // 2 days ago
-        }
-    ],
+export const useSentimentStore = create<SentimentState>((set) => {
+    // Initialize from storage
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(["currentProduct", "history", "scansUsed"]).then((data) => {
+            const updates: Partial<SentimentState> = {};
+            if (data.currentProduct && typeof data.currentProduct === 'object' && 'name' in data.currentProduct) {
+                updates.currentProduct = data.currentProduct as ProductMetadata;
+            }
+            if (Array.isArray(data.history)) {
+                updates.history = data.history as HistoryItem[];
+            }
+            if (typeof data.scansUsed === 'number') {
+                updates.scansUsed = data.scansUsed;
+            }
+            set(updates);
+        });
 
-    setProduct: (product) => set({ currentProduct: product, error: null }),
-    setResult: (result) => set({ sentimentResult: result, isLoading: false, isBottomSheetOpen: true }),
-    setLoading: (loading) => set({ isLoading: loading, error: null }),
-    setError: (error) => set({ error, isLoading: false }),
-    setBottomSheetOpen: (open) => set({ isBottomSheetOpen: open }),
-    setView: (view) => set({ currentView: view }),
-    setAuthMode: (mode) => set({ authMode: mode }),
-    setActiveTab: (tab) => set({ activeTab: tab }),
-    incrementScans: () => set((state) => ({ scansUsed: state.scansUsed + 1 })),
-    addToHistory: (item) => set((state) => ({ history: [item, ...state.history] })),
-    clearHistory: () => set({ history: [] }),
-    setTheme: (theme) => set({ theme }),
-    setAutoAnalyze: (autoAnalyze) => set({ autoAnalyze }),
-    setNotifications: (notifications) => set({ notifications }),
-    logout: () => set({ isAuthenticated: false, user: null, currentView: 'AUTH' }),
-    reset: () => set({
+        // Listen for changes from content scripts
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === "local" && changes.currentProduct) {
+                set({ currentProduct: changes.currentProduct.newValue as ProductMetadata });
+            }
+        });
+    }
+
+    return {
         currentProduct: null,
         sentimentResult: null,
         isLoading: false,
         error: null,
+        isAuthenticated: true, // Keep true for now to allow full flow testing
+        dailyLimit: 3,
+        scansUsed: 0,
+        plan: 'FREE',
         isBottomSheetOpen: false,
-        currentView: 'HOME'
-    }),
-}));
+        currentView: 'HOME',
+        authMode: 'SIGN_UP',
+        activeTab: 'home',
+        user: { name: "Test User", email: "test@example.com" }, 
+        theme: 'system',
+        autoAnalyze: false,
+        notifications: true,
+        history: [],
+
+        setProduct: (product) => set({ currentProduct: product, error: null }),
+        setResult: (result) => set({ sentimentResult: result, isLoading: false, isBottomSheetOpen: true }),
+        setLoading: (loading) => set({ isLoading: loading, error: null }),
+        setError: (error) => set({ error, isLoading: false }),
+        setBottomSheetOpen: (open) => set({ isBottomSheetOpen: open }),
+        setView: (view) => set({ currentView: view }),
+        setAuthMode: (mode) => set({ authMode: mode }),
+        setActiveTab: (tab) => set({ activeTab: tab }),
+        incrementScans: () => set((state) => {
+            const newCount = state.scansUsed + 1;
+            chrome.storage.local.set({ scansUsed: newCount });
+            return { scansUsed: newCount };
+        }),
+        addToHistory: (item) => set((state) => {
+            const newHistory = [item, ...state.history].slice(0, 50); // Limit history size
+            chrome.storage.local.set({ history: newHistory });
+            return { history: newHistory };
+        }),
+        clearHistory: () => {
+            chrome.storage.local.set({ history: [] });
+            set({ history: [] });
+        },
+        setTheme: (theme) => set({ theme }),
+        setAutoAnalyze: (autoAnalyze) => set({ autoAnalyze }),
+        setNotifications: (notifications) => set({ notifications }),
+        logout: () => set({ isAuthenticated: false, user: null, currentView: 'AUTH' }),
+        reset: () => set({
+            currentProduct: null,
+            sentimentResult: null,
+            isLoading: false,
+            error: null,
+            isBottomSheetOpen: false,
+            currentView: 'HOME'
+        }),
+    };
+});
